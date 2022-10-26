@@ -92,6 +92,7 @@
                     const { ele } = feature.graphic.attributes;
                     s= `${videotime}`
                     t= s.replace('.be','be.com/embed')
+                    t= t.replace('t=','start=')
                     const div = document.createElement("div");
                     div.innerHTML = unsanitizedHTML.concat(
                       `<b>Time:</b> ${time}<br><b>Elevation: </b>${ele}<br><a href=${videotime}>See location on youtube</a><iframe width="350" height="197" src="`+t+`"></iframe>`
