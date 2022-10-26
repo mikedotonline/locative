@@ -1,0 +1,86 @@
+<html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+      <title>Video Streetview Map Demo</title>
+      <style>
+        html,
+        body,
+        #viewDiv {
+          padding: 0;
+          margin: 0;
+          height: 100%;
+          width: 100%;
+        }
+      </style>
+      <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
+      <script src="https://js.arcgis.com/4.24/"></script>
+      <script>
+        require([
+            "esri/config",
+            "esri/Map", 
+            "esri/views/MapView", 
+            "esri/Graphic", 
+            "esri/layers/GraphicsLayer",
+            "esri/layers/FeatureLayer"], 
+            function (esriConfig,Map, MapView, Graphic, GraphicsLayer,FeatureLayer) {
+                esriConfig.apiKey = "AAPK4831cfd5d11d4ef3a069c5570a03506eL7mdKDB3zJYLnSZmaued96SGiJ5fB6VvCbnpIOcw-7BHilZ1Z9FhTck5nPHXLJFg";
+
+                const map = new Map ({
+                    basemap:"arcgis-topographic" //Basemap layer Service
+                });
+                const view = new MapView({
+                    map: map,
+                    center:[-75.90178, 45.51817],//long,lat
+                    zoom:13, //zoom level
+                    container: "viewDiv" //div element
+                })
+
+                const graphicsLayer = new GraphicsLayer();
+                map.add(graphicsLayer);
+
+                const trailsRenderer = {
+                type: "simple",
+                symbol: {
+                  color: "#BA55D3",
+                  size:5,
+                  outline:{
+                    color:[255,255,255,0.1],
+                    width:1
+                  },
+                  type: "simple-marker",
+                  style: "circle"
+                  }
+                };
+
+                const popupMergedLayer = {
+                  title: "Track Point With Video Location",
+                  content:"<b><a href={videotime}>Locative Video Link</b></a><br><b> Recording:</b> {layer}<br><b>Time</b> {time} <br><b>Elevation</b> {ele}"
+                };
+
+                /*const attributes = {
+                  Name:"Graphic",
+                  Description:"I am a polygon"
+                };*/
+
+                const mergedLayer = new FeatureLayer({
+                  url: "https://services7.arcgis.com/ByuJVaCh4TOBxLa8/arcgis/rest/services/meechlake_p12_trails_videotour/FeatureServer/0",
+                  //symbol: simpleMarkerSymbol
+                  renderer:trailsRenderer,
+                  outFields: ["layer","time","ele","videotime"],
+                  popupTemplate:popupMergedLayer
+
+                });
+                map.add(mergedLayer);
+
+
+            });
+      </script>
+  
+    </head>
+    <body>
+      <h1>Video Map Demo</h1>
+      <h3> Creator: Michael E. Martin <br /> Twitter: <a href="https://twitter.com/locativespaces">@locativespaces</a><br /></h3>
+      <div id="viewDiv"></div>
+    </body>
+  </html>
