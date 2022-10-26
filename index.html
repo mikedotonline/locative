@@ -24,7 +24,7 @@
             "esri/layers/GraphicsLayer",
             "esri/layers/FeatureLayer"], 
             function (esriConfig,Map, MapView, Graphic, GraphicsLayer,FeatureLayer) {
-                esriConfig.apiKey = "AAPK4831cfd5d11d4ef3a069c5570a03506eL7mdKDB3zJYLnSZmaued96SGiJ5fB6VvCbnpIOcw-7BHilZ1Z9FhTck5nPHXLJFg";
+                esriConfig.apiKey = "AAPK8aee897e481a42c584a3f23d1ea72aferz4Tj9Mx8OLjff6ymMDPiyhw5D3Uk9_tD9EBNNGNC9vOQ-g4DSCK1N6_vi-z3bd6";
 
                 const map = new Map ({
                     basemap:"arcgis-topographic" //Basemap layer Service
@@ -55,8 +55,10 @@
 
                 const popupMergedLayer = {
                   title: "Track Point With Video Location",
-                  content:"<b><a href={videotime}>Locative Video Link</b></a><br><b> Recording:</b> {layer}<br><b>Time</b> {time} <br><b>Elevation</b> {ele}"
+                  content:'<b><a href={videotime}>Locative Video Link</b></a><br><b> Recording:</b> {layer}<br><b>Time</b> {time} <br><b>Elevation</b> {ele} <br> <iframe width="560" height="315" src="{videotime}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
                 };
+
+                /*<iframe width="300" height="200" src="https://www.youtube.com/embed/4an_dG6nC7o" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>*/
 
                 /*const attributes = {
                   Name:"Graphic",
@@ -81,6 +83,7 @@
     <body>
       <h1>Video Map Demo</h1>
       <h3> Creator: Michael E. Martin <br /> Twitter: <a href="https://twitter.com/locativespaces">@locativespaces</a><br /></h3>
+      <txt>A web map viewer keying video time to video location. </txt>
       <div id="viewDiv"></div>
     </body>
   </html>
