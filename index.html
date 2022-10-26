@@ -11,11 +11,24 @@
           margin: 0;
           height: 100%;
           width: 100%;
+          position:absolute;
+        }
+        #videoDiv {
+          position:absolute;
+          bottom: 3px;
+          right:3px;
+          z-index:10;
+
         }
       </style>
       <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
       <script src="https://js.arcgis.com/4.24/"></script>
       <script>
+        function runCode(v){
+          document.getElementById('videoDiv').innerHTML = '<iframe width="300" height="200" src='+v+' title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+          document.getElementById('videoDiv').style.visibility = 'visible';
+          //return v;
+        }
         require([
             "esri/config",
             "esri/Map", 
@@ -58,7 +71,36 @@
                   content:'<b><a href={videotime}>Locative Video Link</b></a><br><b> Recording:</b> {layer}<br><b>Time</b> {time} <br><b>Elevation</b> {ele} <br> <iframe width="560" height="315" src="{videotime}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
                 };
 
-                /*<iframe width="300" height="200" src="https://www.youtube.com/embed/4an_dG6nC7o" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>*/
+                /*const popupTemplate = {
+                  outFields:["*"],
+                  title:"{layer}",
+                  content:function(feature){
+                    const {videotime} = feature.graphic.attributes;
+                    const div = document.createElement("div");
+                    div.innerHTML = '<p>${videotime}</p>';//'<input type="button" onclick=showVideo(${videotime}) value="clickme">';
+                    return div;
+                  }
+                };*/
+
+                const popupTemplate = {
+                  outFields: ["*"],
+                  title: "Immersive Video: {layer}",
+                  content: function (feature) {
+                    const unsanitizedHTML = '<br>';
+                    const { videotime } = feature.graphic.attributes;
+                    const { time } = feature.graphic.attributes;
+                    const { ele } = feature.graphic.attributes;
+                    s= `${videotime}`
+                    t= s.replace('.be','be.com/embed')
+                    const div = document.createElement("div");
+                    div.innerHTML = unsanitizedHTML.concat(
+                      `<b>Time:</b> ${time}<br><b>Elevation: </b>${ele}<br><a href=${videotime}>See location on youtube</a><iframe width="350" height="197" src="`+t+`"></iframe>`
+                    );
+                    return div;
+                  }
+                };
+
+                /*<input type='button' onclick=runCode("${videotime}") value='Click Me'></input>*/
 
                 /*const attributes = {
                   Name:"Graphic",
@@ -67,13 +109,18 @@
 
                 const mergedLayer = new FeatureLayer({
                   url: "https://services7.arcgis.com/ByuJVaCh4TOBxLa8/arcgis/rest/services/meechlake_p12_trails_videotour/FeatureServer/0",
+                  popupTemplate:popupTemplate,
                   //symbol: simpleMarkerSymbol
-                  renderer:trailsRenderer,
-                  outFields: ["layer","time","ele","videotime"],
-                  popupTemplate:popupMergedLayer
+                  renderer:trailsRenderer
+                  //outFields: ["layer","time","ele","videotime"],
+                  //popupTemplate:popupMergedLayer
+                  
 
                 });
                 map.add(mergedLayer);
+
+
+
 
 
             });
@@ -85,5 +132,7 @@
       <h3> Creator: Michael E. Martin <br /> Twitter: <a href="https://twitter.com/locativespaces">@locativespaces</a><br /></h3>
       <txt>A web map viewer keying video time to video location. </txt>
       <div id="viewDiv"></div>
+      <div id="videoDiv" style="visibility:hidden;"></div>
+
     </body>
   </html>
