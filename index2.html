@@ -27,14 +27,16 @@
   <script src="https://js.arcgis.com/4.24/"></script>
   <script>
     var yt_ids = null;
+    var yt_t = null;
     var player =null;
     function runCode(v,t) {
       //document.getElementById('videoDiv').innerHTML = '<iframe width="355" height="200" src='+v+' title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
-      alert("youtube link:" + v);
+      //console.log("youtube link:" + v);
 
       //load the youtube play api
       yt_ids = get_ytID(v); // set the video to get to the current link's yt id
-      alert("yt id:"+yt_ids);
+      yt_t = t;
+      console.log("yt id:"+yt_ids);
 
       if(player == null)
       {
@@ -45,7 +47,8 @@
 
 
         document.getElementById('videoDiv').style.visibility = 'visible';
-        player.seekTo(t);
+        console.log("seeking to:"+t)
+        // player not loaded yet //player.seekTo(t);
       } else {
         player.loadVideoById({
           'videoId': yt_ids,
@@ -65,7 +68,8 @@
         width: '448',
         videoId: yt_ids,
         playerVars: {
-          'playsinline': 1
+          'playsinline': 1,
+          'start':yt_t
         },
         events: {
           'onReady': onPlayerReady,
@@ -133,13 +137,11 @@
               //do something
               g = graphic//console.log(graphic.attributes);
               runCode(g.attributes.videotime,g.attributes.delta);
+              graphicsLayer.add(g);
 
             }
           });
         });
-
-        const graphicsLayer = new GraphicsLayer();
-        map.add(graphicsLayer);
 
         const trailsRenderer = {
           type: "simple",
@@ -160,7 +162,7 @@
           type: "simple",
           symbol: {
             color: "#33BEFF", // light blue
-            size: 5,
+            size: 10,
             outline: {
               color: [255, 255, 255, 0.1],
               width: 1
@@ -169,6 +171,8 @@
             style: "circle"
           }
         };
+        const graphicsLayer = new GraphicsLayer({renderer:highlightRenderer});
+        map.add(graphicsLayer);
 
         //depcrecated 
         const popupMergedLayer = {
