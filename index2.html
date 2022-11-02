@@ -1,0 +1,234 @@
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Video Streetview Map Demo</title>
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      position: absolute;
+    }
+
+    #videoDiv {
+      position: fixed;
+      bottom: 3px;
+      right: 3px;
+      z-index: 10;
+
+    }
+  </style>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.24/"></script>
+  <script>
+    var yt_ids = null;
+    var player =null;
+    function runCode(v,t) {
+      //document.getElementById('videoDiv').innerHTML = '<iframe width="355" height="200" src='+v+' title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+      alert("youtube link:" + v);
+
+      //load the youtube play api
+      yt_ids = get_ytID(v); // set the video to get to the current link's yt id
+      alert("yt id:"+yt_ids);
+
+      if(player == null)
+      {
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+
+        document.getElementById('videoDiv').style.visibility = 'visible';
+        player.seekTo(t);
+      } else {
+        player.loadVideoById({
+          'videoId': yt_ids,
+          'startSeconds':t
+        })
+      }
+      //onYouTubePlayerAPIReady(v)
+      //return v;
+
+    }
+
+    //function to create the youtube player object
+    
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('videoDiv', {
+        height: '273',
+        width: '448',
+        videoId: yt_ids,
+        playerVars: {
+          'playsinline': 1
+        },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    //what to do when the player loads
+    function onPlayerReady(event) {
+        event.target.playVideo();
+    }
+    var done = false;
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING && !done) {
+            //setTimeout(stopVideo, 6000);
+            done = true;
+        }
+    }
+    function stopVideo() {
+        player.stopVideo();
+    }
+
+
+    // little function to rip the video id from a yt video link with time. 
+    // https://youtu.be/1234xyc?t=987 becomes '1234xyc'
+    function get_ytID(l) {
+      id = l.replace(/\?t=.*/, '');
+      return id.replace('https://youtu.be/', '');
+    }
+
+
+    var g = null; //debugging for now
+    require([
+      "esri/config",
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer",
+      "esri/layers/FeatureLayer"],
+      function (esriConfig, Map, MapView, Graphic, GraphicsLayer, FeatureLayer) {
+        esriConfig.apiKey = "AAPK8aee897e481a42c584a3f23d1ea72aferz4Tj9Mx8OLjff6ymMDPiyhw5D3Uk9_tD9EBNNGNC9vOQ-g4DSCK1N6_vi-z3bd6";
+
+        const map = new Map({
+          basemap: "arcgis-topographic" //Basemap layer Service
+        });
+        var view = new MapView({
+          map: map,
+          center: [-75.90178, 45.51817],//long,lat
+          zoom: 13, //zoom level
+          container: "viewDiv" //div element
+        })
+
+        //get the loaction of the mouse click and then load video and marker there
+        view.on("click", function (event) {
+          var screenPoint = {
+            x: event.x,
+            y: event.y
+          };
+          view.hitTest(screenPoint).then(function (response) {
+            if (response.results.length) {
+              var graphic = response.results.filter(function (result) {
+                return result.graphic.layer == mergedLayer;
+              })[0].graphic;
+              //do something
+              g = graphic//console.log(graphic.attributes);
+              runCode(g.attributes.videotime,g.attributes.delta);
+
+            }
+          });
+        });
+
+        const graphicsLayer = new GraphicsLayer();
+        map.add(graphicsLayer);
+
+        const trailsRenderer = {
+          type: "simple",
+          symbol: {
+            color: "#BA55D3",
+            size: 5,
+            outline: {
+              color: [255, 255, 255, 0.1],
+              width: 1
+            },
+            type: "simple-marker",
+            style: "circle"
+          }
+        };
+
+        //a renderer for when a user selects a location, or when the video sends back a location
+        const highlightRenderer = {
+          type: "simple",
+          symbol: {
+            color: "#33BEFF", // light blue
+            size: 5,
+            outline: {
+              color: [255, 255, 255, 0.1],
+              width: 1
+            },
+            type: "simple-marker",
+            style: "circle"
+          }
+        };
+
+        //depcrecated 
+        const popupMergedLayer = {
+          title: "Track Point With Video Location",
+          content: '<b><a href={videotime}>Locative Video Link</b></a><br><b> Recording:</b> {layer}<br><b>Time</b> {time} <br><b>Elevation</b> {ele}'
+          //removed iframe // <iframe width="560" height="315" src="{videotime}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+        };
+
+        const popupTemplate = {
+          outFields: ["*"],
+          title: "Immersive Video: {layer}",
+          content: function (feature) {
+            const unsanitizedHTML = '<br>';
+            const { videotime } = feature.graphic.attributes;
+            const { time } = feature.graphic.attributes;
+            const { ele } = feature.graphic.attributes;
+            s = `${videotime}`
+            t = s.replace('.be', 'be.com/embed')
+            t = t.replace('t=', 'start=')
+            u = s.replace('https://youtu.be/', '')
+            u = u.replace('?t=', '')
+
+            const div = document.createElement("div");
+            div.innerHTML = unsanitizedHTML.concat(
+              `<b>Time:</b> ${time}<br><b>Elevation: </b>${ele}<br><a href=${videotime}>See location on youtube</a>`
+            );
+            // removed iframe <iframe width="355" height="200" src="` + t + `"></iframe>
+            return div;
+          }
+        };
+
+        const mergedLayer = new FeatureLayer({
+          url: "https://services7.arcgis.com/ByuJVaCh4TOBxLa8/arcgis/rest/services/meechlake_p12_trails_videotour/FeatureServer/0",
+          popupTemplate: popupTemplate,
+          //symbol: simpleMarkerSymbol
+          renderer: trailsRenderer,
+          outFields: ['*']
+        });
+        map.add(mergedLayer);
+        //function feat_click() { alert("featclicked") }
+
+
+
+
+
+      });
+  </script>
+
+
+</head>
+
+<body>
+  <h1>Video Map Demo</h1>
+  <h3> Creator: Michael E. Martin <br /> Twitter: <a href="https://twitter.com/locativespaces">@locativespaces</a><br />
+  </h3>
+  <txt>A web map viewer keying video time to video location. </txt>
+  <div id="viewDiv"></div>
+  <div id="videoDiv" style="visibility:hidden;"></div>
+  <!--https://developers.google.com/youtube/iframe_api_reference-->
+  <!--<div id="ytplayer"></div>-->
+</body>
+
+</html>
