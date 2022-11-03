@@ -28,40 +28,36 @@
   <script>
     var yt_ids = null;
     var yt_t = null;
-    var player =null;
-    function runCode(v,t) {
-      //document.getElementById('videoDiv').innerHTML = '<iframe width="355" height="200" src='+v+' title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
-      //console.log("youtube link:" + v);
-
-      //load the youtube play api
+    var player = null;
+    let highlight;
+    //helper function
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    function runCode(v, t) {
       yt_ids = get_ytID(v); // set the video to get to the current link's yt id
       yt_t = t;
-      console.log("yt id:"+yt_ids);
+      console.log("yt id:" + yt_ids);
 
-      if(player == null)
-      {
+      if (player == null) {
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-
         document.getElementById('videoDiv').style.visibility = 'visible';
-        console.log("seeking to:"+t)
-        // player not loaded yet //player.seekTo(t);
+        console.log("seeking to:" + t)
+        //if the play is already up, make sure the video is the right one, then play it at the right time.
       } else {
         player.loadVideoById({
           'videoId': yt_ids,
-          'startSeconds':t
+          'startSeconds': t
         })
       }
-      //onYouTubePlayerAPIReady(v)
-      //return v;
 
     }
 
     //function to create the youtube player object
-    
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('videoDiv', {
         height: '273',
@@ -69,7 +65,7 @@
         videoId: yt_ids,
         playerVars: {
           'playsinline': 1,
-          'start':yt_t
+          'start': yt_t
         },
         events: {
           'onReady': onPlayerReady,
@@ -80,24 +76,16 @@
 
     //what to do when the player loads
     function onPlayerReady(event) {
-        event.target.playVideo();
+      event.target.playVideo();
     }
-    var done = false;
-    function onPlayerStateChange(event) {
-        if (event.data == YT.PlayerState.PLAYING && !done) {
-            //setTimeout(stopVideo, 6000);
-            done = true;
-        }
-    }
-    function stopVideo() {
-        player.stopVideo();
-    }
+    
+
 
 
     // little function to rip the video id from a yt video link with time. 
     // https://youtu.be/1234xyc?t=987 becomes '1234xyc'
     function get_ytID(l) {
-      id = l.replace(/\?t=.*/, '');
+      id = l.replace(/\?t=.*/, ''); //regex. javascript just takes it in directly.
       return id.replace('https://youtu.be/', '');
     }
 
@@ -109,9 +97,13 @@
       "esri/views/MapView",
       "esri/Graphic",
       "esri/layers/GraphicsLayer",
-      "esri/layers/FeatureLayer"],
+      "esri/layers/FeatureLayer",
+      "esri/views/layers/FeatureLayerView",
+      "dojo/on"
+    ],
       function (esriConfig, Map, MapView, Graphic, GraphicsLayer, FeatureLayer) {
         esriConfig.apiKey = "AAPK8aee897e481a42c584a3f23d1ea72aferz4Tj9Mx8OLjff6ymMDPiyhw5D3Uk9_tD9EBNNGNC9vOQ-g4DSCK1N6_vi-z3bd6";
+
 
         const map = new Map({
           basemap: "arcgis-topographic" //Basemap layer Service
@@ -136,12 +128,12 @@
               })[0].graphic;
               //do something
               g = graphic//console.log(graphic.attributes);
-              runCode(g.attributes.videotime,g.attributes.delta);
-              graphicsLayer.add(g);
+              runCode(g.attributes.videotime, g.attributes.delta);
+              //graphicsLayer.add(g);
 
             }
-          });
-        });
+          });//end hitTest
+        });//end view.on
 
         const trailsRenderer = {
           type: "simple",
@@ -158,13 +150,13 @@
         };
 
         //a renderer for when a user selects a location, or when the video sends back a location
-        const highlightRenderer = {
+        /*const highlightRenderer = {
           type: "simple",
           symbol: {
-            color: "#33BEFF", // light blue
+            color: [51,190,255,0.1], // light blue
             size: 10,
             outline: {
-              color: [255, 255, 255, 0.1],
+              color: [255, 255, 255, 0],
               width: 1
             },
             type: "simple-marker",
@@ -172,7 +164,7 @@
           }
         };
         const graphicsLayer = new GraphicsLayer({renderer:highlightRenderer});
-        map.add(graphicsLayer);
+        map.add(graphicsLayer);*/
 
         //depcrecated 
         const popupMergedLayer = {
@@ -206,17 +198,38 @@
 
         const mergedLayer = new FeatureLayer({
           url: "https://services7.arcgis.com/ByuJVaCh4TOBxLa8/arcgis/rest/services/meechlake_p12_trails_videotour/FeatureServer/0",
-          popupTemplate: popupTemplate,
+          //popupTemplate: popupTemplate,
           //symbol: simpleMarkerSymbol
           renderer: trailsRenderer,
-          outFields: ['*']
+          outFields: ['*'],
+          index: 2
         });
         map.add(mergedLayer);
-        //function feat_click() { alert("featclicked") }
 
+        var done = false;
+        function onPlayerStateChange(event) {
+          console.log("playerstatechange fired")
+          if (event.data == YT.PlayerState.PLAYING && !done) {
+            done = true;
+          }
+          var player_time = player.getCurrentTime()
+          console.log("player time:" + Math.floor(player_time)+" video title:"+player.videoTitle)
+          //updateMarkerPosition(Math.floor(player_time), player.getVideoData().video_id)
 
+          
+          view.whenLayerView(mergedLayer).then(function (layerView) {
+            let query = mergedLayer.createQuery();
+            query.where = "delta = '"+Math.floor(player_time)+"' and layer = '"+player.videoTitle+"'";
+            mergedLayer.queryFeatures(query).then(function (result) {
+              if (highlight) {
+                highlight.remove();
+              }
+              highlight = layerView.highlight(result.features);
+            })
+          }); // end whenLayerView
 
-
+        }
+        window.onPlayerStateChange = onPlayerStateChange; //assign the function to window (global func) to get our of require()
 
       });
   </script>
