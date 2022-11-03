@@ -58,6 +58,8 @@
     }
 
     //function to create the youtube player object
+    var videotime = 0;
+    var timeupdater = null;
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('videoDiv', {
         height: '273',
@@ -77,8 +79,24 @@
     //what to do when the player loads
     function onPlayerReady(event) {
       event.target.playVideo();
+      function updateTime() {
+        var oldTime = videotime;
+        if (player && player.getCurrentTime) {
+          videotime = player.getCurrentTime();
+        }
+        if (videotime !== oldTime) {
+          onProgress(videotime,player.videoTitle);
+        }
+      }
+      timeupdater = setInterval(updateTime, 2000);
     }
-    
+    // when the time changes, this will be called.
+    // function onProgress(currentTime) {
+    // if (currentTime > 20) {
+    //   console.log("the video reached 20 seconds!");
+    // }
+    // }
+
 
 
 
@@ -139,7 +157,7 @@
           type: "simple",
           symbol: {
             color: "#BA55D3",
-            size: 5,
+            size: 10,
             outline: {
               color: [255, 255, 255, 0.1],
               width: 1
@@ -206,20 +224,12 @@
         });
         map.add(mergedLayer);
 
-        var done = false;
-        function onPlayerStateChange(event) {
-          console.log("playerstatechange fired")
-          if (event.data == YT.PlayerState.PLAYING && !done) {
-            done = true;
-          }
-          var player_time = player.getCurrentTime()
-          console.log("player time:" + Math.floor(player_time)+" video title:"+player.videoTitle)
-          //updateMarkerPosition(Math.floor(player_time), player.getVideoData().video_id)
-
-          
+        function makeHighlight(player_time,player_title)
+        {
           view.whenLayerView(mergedLayer).then(function (layerView) {
             let query = mergedLayer.createQuery();
-            query.where = "delta = '"+Math.floor(player_time)+"' and layer = '"+player.videoTitle+"'";
+            query.where = "delta = '" + player_time + "' and layer = '" + player_title + "'";
+            console.log(query);
             mergedLayer.queryFeatures(query).then(function (result) {
               if (highlight) {
                 highlight.remove();
@@ -227,9 +237,32 @@
               highlight = layerView.highlight(result.features);
             })
           }); // end whenLayerView
+        }
+
+        var done = false;
+        function onPlayerStateChange(event) {
+          console.log("playerstatechange fired")
+          if (event.data == YT.PlayerState.PLAYING && !done) {
+            done = true;
+          }
+          var player_time = player.getCurrentTime()
+          console.log("player time:" + Math.floor(player_time) + " video title:" + player.videoTitle)
+          //updateMarkerPosition(Math.floor(player_time), player.getVideoData().video_id
+
+          makeHighlight(Math.floor(player_time),player.videoTitle);
 
         }
         window.onPlayerStateChange = onPlayerStateChange; //assign the function to window (global func) to get our of require()
+
+        //when the time changes, this will be called.
+        function onProgress(currentTime,videoTitle) {
+          // if (currentTime > 20) {
+          //   console.log("the video reached 20 seconds!");
+          // }
+          makeHighlight(Math.floor(currentTime),videoTitle)
+        }
+        window.onProgress = onProgress
+
 
       });
   </script>
